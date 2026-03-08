@@ -247,6 +247,58 @@ let state = {
   charts: {}
 };
 
+// ─── IDB CACHE FOR FILE HANDLE ──────────────────────────────────
+const DB_STORE = "cpanel_store";
+function getDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open("CPanelDB", 1);
+    req.onupgradeneeded = e => { e.target.result.createObjectStore(DB_STORE); };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function idbSet(key, val) {
+  try {
+    const db = await getDB();
+    const tx = db.transaction(DB_STORE, "readwrite");
+    tx.objectStore(DB_STORE).put(val, key);
+    return new Promise(res => tx.oncomplete = res);
+  } catch(e) { console.error("IDB Set Error", e); }
+}
+async function idbGet(key) {
+  try {
+    const db = await getDB();
+    const tx = db.transaction(DB_STORE, "readonly");
+    const req = tx.objectStore(DB_STORE).get(key);
+    return new Promise(res => req.onsuccess = () => res(req.result));
+  } catch(e) { console.error("IDB Get Error", e); return null; }
+}
+
+async function autoSaveData() {
+  const csvText = serializeCSV();
+  localStorage.setItem("cpanel_data", csvText);
+  sessionStorage.setItem("cpanel_active", "true");
+
+  if (window._selectedFileHandle && window._selectedFileHandle.createWritable) {
+    try {
+      const opts = { mode: 'readwrite' };
+      if ((await window._selectedFileHandle.queryPermission(opts)) !== 'granted') {
+          const perm = await window._selectedFileHandle.requestPermission(opts);
+          if (perm !== 'granted') throw new Error("Permission denied");
+      }
+      const writable = await window._selectedFileHandle.createWritable();
+      await writable.write(csvText);
+      await writable.close();
+      showToast(t("toast.saved"), "success");
+      setUnsaved(false);
+      return;
+    } catch (e) {
+      console.error("Auto-save direct write failed", e);
+    }
+  }
+  setUnsaved(true);
+}
+
 // ─── HELPERS ──────────────────────────────────────────────────
 function t(key) {
   return cpI18n[state.lang][key] || cpI18n.en[key] || key;
@@ -304,12 +356,23 @@ function applyTheme(th) {
   if (icon) icon.innerHTML = th === "dark" ? '<i class="ph ph-moon"></i>' : '<i class="ph ph-sun"></i>';
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   // Init defaults
   const savedTheme = localStorage.getItem("cpanel_theme") ||
     (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   applyTheme(savedTheme);
   applyI18n();
+  
+  if (sessionStorage.getItem("cpanel_active") === "true") {
+     const cachedCsv = localStorage.getItem("cpanel_data");
+     if (cachedCsv) {
+        parseCSV(cachedCsv);
+        try { window._selectedFileHandle = await idbGet("fileHandle"); } catch(e) {}
+        launchApp();
+        return;
+     }
+  }
+
   initAuth();
 });
 
@@ -367,7 +430,36 @@ function initAuth() {
   const dropZone = document.getElementById("fileDrop");
   const fileInput = document.getElementById("csvFileInput");
 
-  dropZone.addEventListener("click", () => fileInput.click());
+  dropZone.addEventListener("click", async () => {
+    if (window.showOpenFilePicker) {
+       try {
+         const [fileHandle] = await window.showOpenFilePicker({
+           types: [{ description: 'CSV Files', accept: {'text/csv': ['.csv']} }]
+         });
+         const file = await fileHandle.getFile();
+         if (file.name !== DATA_FILE_NAME) {
+           document.getElementById("fileError").classList.add("show");
+           document.getElementById("fileErrorMsg").textContent = `Invalid file. Please upload "${DATA_FILE_NAME}" only.`;
+           return;
+         }
+         window._selectedFileHandle = fileHandle;
+         idbSet("fileHandle", fileHandle);
+         
+         const reader = new FileReader();
+         reader.onload = e => {
+           parseCSV(e.target.result);
+           localStorage.setItem("cpanel_data", e.target.result);
+           sessionStorage.setItem("cpanel_active", "true");
+           launchApp();
+         };
+         reader.readAsText(file);
+       } catch (e) {
+         console.error("File selection cancelled or failed", e);
+       }
+    } else {
+       fileInput.click();
+    }
+  });
 
   dropZone.addEventListener("dragover", e => {
     e.preventDefault();
@@ -413,9 +505,27 @@ function initAuth() {
   });
 
   // First-time use: generate empty
-  document.getElementById("btnFirstUse").addEventListener("click", () => {
-    generateAndDownloadCSV([], { tender: 0, puja: 0 });
-    launchApp();
+  document.getElementById("btnFirstUse").addEventListener("click", async () => {
+    if (window.showSaveFilePicker) {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: DATA_FILE_NAME,
+          types: [{ description: 'CSV Files', accept: {'text/csv': ['.csv']} }]
+        });
+        window._selectedFileHandle = fileHandle;
+        idbSet("fileHandle", fileHandle);
+        state.orders = [];
+        state.inventory = { tender: 0, puja: 0 };
+        await autoSaveData();
+        launchApp();
+      } catch (e) {
+        console.error("First use creation cancelled", e);
+      }
+    } else {
+       generateAndDownloadCSV([], { tender: 0, puja: 0 });
+       sessionStorage.setItem("cpanel_active", "true");
+       launchApp();
+    }
   });
 }
 
@@ -491,8 +601,27 @@ function serializeCSV() {
   return rows.join("\n");
 }
 
-function generateAndDownloadCSV(orders = state.orders, inventory = state.inventory) {
+async function generateAndDownloadCSV(orders = state.orders, inventory = state.inventory) {
   const csvText = serializeCSV();
+  
+  if (window._selectedFileHandle && window._selectedFileHandle.createWritable) {
+     try {
+         const opts = { mode: 'readwrite' };
+         if ((await window._selectedFileHandle.queryPermission(opts)) !== 'granted') {
+             if ((await window._selectedFileHandle.requestPermission(opts)) !== 'granted') 
+                 throw new Error("No permission");
+         }
+         const writable = await window._selectedFileHandle.createWritable();
+         await writable.write(csvText);
+         await writable.close();
+         showToast(t("toast.saved"), "success");
+         setUnsaved(false);
+         return;
+     } catch (e) {
+         console.error("Direct export failed", e);
+     }
+  }
+
   const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -544,6 +673,8 @@ function initSidebar() {
   document.getElementById("btnExportSettings").addEventListener("click", generateAndDownloadCSV);
   document.getElementById("btnLogout").addEventListener("click", () => {
     if (state.unsaved && !confirm("You have unsaved changes. Logout anyway?")) return;
+    sessionStorage.removeItem("cpanel_active");
+    localStorage.removeItem("cpanel_data");
     location.reload();
   });
 }
@@ -908,7 +1039,7 @@ function saveOrder() {
     showToast(t("toast.orderAdded"), "success");
   }
 
-  setUnsaved(true);
+  autoSaveData();
   closeOrderModal();
   renderAll();
 }
@@ -916,7 +1047,7 @@ function saveOrder() {
 window.deleteOrder = function(id) {
   if (!confirm("Delete this order?")) return;
   state.orders = state.orders.filter(o => o.id !== id);
-  setUnsaved(true);
+  autoSaveData();
   showToast(t("toast.orderDeleted"), "danger");
   renderAll();
 };
@@ -955,7 +1086,7 @@ function renderInventory() {
 window.adjustStock = function(key, dir) {
   const qty = parseInt(document.getElementById(`invQty_${key}`)?.value) || 10;
   state.inventory[key] = Math.max(0, (state.inventory[key] || 0) + (dir * qty));
-  setUnsaved(true);
+  autoSaveData();
   renderInventory();
 };
 
@@ -1103,7 +1234,7 @@ function initResetModal() {
   document.getElementById("confirmReset")?.addEventListener("click", () => {
     state.orders = [];
     state.inventory = { tender: 0, puja: 0 };
-    setUnsaved(true);
+    autoSaveData();
     document.getElementById("resetModal").classList.remove("open");
     showToast(t("toast.reset"), "danger");
     renderAll();
