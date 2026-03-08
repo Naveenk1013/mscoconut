@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="hi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPanel — MS Coconut Wholesale</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="cpanel.css" />
+</head>
+<body>
+
+<!-- ========== AUTH SCREEN ========== -->
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon"><i class="ph ph-plant"></i></div>
+      <h1>MS Coconut Wholesale</h1>
+      <p id="authSubtitle">Business Manager (ePanel)</p>
+    </div>
+
+    <!-- Step 1: PIN -->
+    <div id="stepPin" class="auth-step active">
+      <div class="auth-step-label"><i class="ph ph-lock"></i> <span data-cp-i18n="auth.step1label">Step 1 of 2</span></div>
+      <h2 data-cp-i18n="auth.step1title">Enter Your PIN</h2>
+      <p class="hint" data-cp-i18n="auth.step1hint">Enter your 4-digit security PIN to continue.</p>
+      <div class="field-group">
+        <div class="pin-row">
+          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+        </div>
+      </div>
+      <p id="pinError" class="auth-error"><i class="ph ph-warning"></i> <span data-cp-i18n="auth.wrongPin">Incorrect PIN. Please try again.</span></p>
+      <button id="btnPinSubmit" class="btn-full btn-primary" disabled>
+        <i class="ph ph-arrow-right"></i> <span data-cp-i18n="auth.continue">Continue</span>
+      </button>
+      <p style="font-size:0.78rem; color:var(--muted); text-align:center; margin-top:1rem;" data-cp-i18n="auth.firstUseNote">First time? Default PIN is <strong>1234</strong>. Change it in Settings.</p>
+    </div>
+
+    <!-- Step 2: CSV File -->
+    <div id="stepFile" class="auth-step">
+      <div class="auth-step-label"><i class="ph ph-file-csv"></i> <span data-cp-i18n="auth.step2label">Step 2 of 2</span></div>
+      <h2 data-cp-i18n="auth.step2title">Upload Your Data File</h2>
+      <p class="hint" data-cp-i18n="auth.step2hint">Upload your <strong>mswholesaledatadonotdelete.csv</strong> file to load your business data.</p>
+
+      <div class="file-drop" id="fileDrop">
+        <i class="ph ph-upload-simple"></i>
+        <p data-cp-i18n="auth.fileDrop"><strong>Click or drag</strong> your data file here</p>
+        <p style="font-size:0.72rem; margin-top:0.3rem; color:var(--muted);" data-cp-i18n="auth.fileFormat">Accepted: mswholesaledatadonotdelete.csv only</p>
+        <p class="file-name" id="chosenFileName"></p>
+        <input type="file" id="csvFileInput" accept=".csv" />
+      </div>
+
+      <p id="fileError" class="auth-error"><i class="ph ph-warning"></i> <span id="fileErrorMsg"></span></p>
+
+      <button id="btnFileSubmit" class="btn-full btn-primary" disabled>
+        <i class="ph ph-sign-in"></i> <span data-cp-i18n="auth.unlock">Unlock Panel</span>
+      </button>
+      <button id="btnFirstUse" class="btn-full btn-ghost">
+        <i class="ph ph-sparkle"></i> <span data-cp-i18n="auth.firstUse">First time — Generate My Data File</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SIDEBAR OVERLAY ========== -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ========== APP SHELL ========== -->
+<div id="appShell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">
+        <i class="ph ph-plant"></i>
+        <span data-cp-i18n="brand.name">MS Coconut</span>
+      </div>
+      <div class="brand-sub" data-cp-i18n="brand.sub">eManager Panel</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label" data-cp-i18n="nav.section.main">Main</div>
+      <div class="sidebar-link active" data-panel="dashboard">
+        <i class="ph ph-squares-four"></i><span data-cp-i18n="nav.dashboard">Dashboard</span>
+      </div>
+      <div class="sidebar-link" data-panel="orders">
+        <i class="ph ph-receipt"></i><span data-cp-i18n="nav.orders">Orders</span>
+      </div>
+      <div class="sidebar-link" data-panel="inventory">
+        <i class="ph ph-stack"></i><span data-cp-i18n="nav.inventory">Inventory</span>
+      </div>
+      <div class="nav-section-label" data-cp-i18n="nav.section.analysis">Analysis</div>
+      <div class="sidebar-link" data-panel="reports">
+        <i class="ph ph-chart-line-up"></i><span data-cp-i18n="nav.reports">Reports</span>
+      </div>
+      <div class="nav-section-label" data-cp-i18n="nav.section.account">Account</div>
+      <div class="sidebar-link" data-panel="settings">
+        <i class="ph ph-gear"></i><span data-cp-i18n="nav.settings">Settings</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-sm sec" id="btnExportCsv" style="width:100%; justify-content:center;">
+        <i class="ph ph-download-simple"></i><span data-cp-i18n="btn.saveExport">Save & Export</span>
+      </button>
+      <button class="btn-sm danger" id="btnLogout" style="width:100%; justify-content:center;">
+        <i class="ph ph-sign-out"></i><span data-cp-i18n="btn.logout">Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <button class="btn-icon mobile-topbar-toggle" id="mobileSidebarToggle" aria-label="Open Menu">
+          <i class="ph ph-list"></i>
+        </button>
+        <span class="topbar-title" id="topbarTitle" data-cp-i18n="nav.dashboard">Dashboard</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-icon" id="langTogglePanel" title="Hindi / English"><i class="ph ph-globe"></i></button>
+        <button class="btn-icon" id="themeTogglePanel" title="Toggle Theme"><i class="ph ph-moon"></i></button>
+        <button class="btn-sm pri" id="btnAddOrderTop">
+          <i class="ph ph-plus"></i><span data-cp-i18n="btn.addOrder">New Order</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====== DASHBOARD ====== -->
+    <div class="panel active" id="panelDashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon green"><i class="ph ph-receipt"></i></div>
+          <div class="stat-body">
+            <div class="label" data-cp-i18n="stat.totalOrders">Total Orders</div>
+            <div class="value" id="statTotalOrders">0</div>
+            <div class="sub" data-cp-i18n="stat.allTime">All time</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue"><i class="ph ph-currency-inr"></i></div>
+          <div class="stat-body">
+            <div class="label" data-cp-i18n="stat.todayRevenue">Today's Revenue</div>
+            <div class="value" id="statToday">₹0</div>
+            <div class="sub" id="statTodayCount">0 <span data-cp-i18n="stat.orders">orders</span></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber"><i class="ph ph-calendar-blank"></i></div>
+          <div class="stat-body">
+            <div class="label" data-cp-i18n="stat.monthRevenue">This Month</div>
+            <div class="value" id="statMonth">₹0</div>
+            <div class="sub" id="statMonthCount">0 <span data-cp-i18n="stat.orders">orders</span></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon red"><i class="ph ph-clock-countdown"></i></div>
+          <div class="stat-body">
+            <div class="label" data-cp-i18n="stat.pending">Pending Orders</div>
+            <div class="value" id="statPending">0</div>
+            <div class="sub" data-cp-i18n="stat.awaitDelivery">Awaiting delivery</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+        <div class="card">
+          <div class="card-header">
+            <h3 data-cp-i18n="chart.last7Days">Revenue — Last 7 Days</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 data-cp-i18n="chart.productSplit">Product Split</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="productChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 data-cp-i18n="table.recentOrders">Recent Orders</h3>
+          <button class="btn-sm sec" onclick="switchPanel('orders')" data-cp-i18n="btn.viewAll">View All</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-cp-i18n="col.date">Date</th>
+                <th data-cp-i18n="col.customer">Customer</th>
+                <th data-cp-i18n="col.product">Product</th>
+                <th data-cp-i18n="col.qty">Qty</th>
+                <th data-cp-i18n="col.total">Total</th>
+                <th data-cp-i18n="col.status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentOrdersBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== ORDERS ====== -->
+    <div class="panel" id="panelOrders">
+      <div class="card">
+        <div class="card-header">
+          <h3 data-cp-i18n="nav.orders">Orders</h3>
+          <button class="btn-sm pri" id="btnAddOrderPanel">
+            <i class="ph ph-plus"></i><span data-cp-i18n="btn.addOrder">New Order</span>
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="table-toolbar">
+            <input type="search" class="search-input" id="orderSearch" data-cp-i18n-placeholder="search.placeholder" placeholder="Search by name, mobile..." />
+            <select class="filter-select" id="orderStatusFilter">
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <select class="filter-select" id="orderProductFilter">
+              <option value="">All Products</option>
+              <option value="tender">Tender Coconut</option>
+              <option value="puja">Puja Coconut</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-cp-i18n="col.date">Date</th>
+                <th data-cp-i18n="col.customer">Customer</th>
+                <th data-cp-i18n="col.mobile">Mobile</th>
+                <th data-cp-i18n="col.product">Product</th>
+                <th data-cp-i18n="col.qty">Qty</th>
+                <th data-cp-i18n="col.rate">Rate</th>
+                <th data-cp-i18n="col.total">Total</th>
+                <th data-cp-i18n="col.status">Status</th>
+                <th data-cp-i18n="col.actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== INVENTORY ====== -->
+    <div class="panel" id="panelInventory">
+      <div class="inv-grid" id="inventoryGrid">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ====== REPORTS ====== -->
+    <div class="panel" id="panelReports">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+        <div class="card">
+          <div class="card-header">
+            <h3 data-cp-i18n="report.daily">Daily Breakdown</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="report-table">
+              <thead><tr>
+                <th data-cp-i18n="col.date">Date</th>
+                <th data-cp-i18n="col.orders">Orders</th>
+                <th data-cp-i18n="col.revenue">Revenue</th>
+              </tr></thead>
+              <tbody id="dailyReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 data-cp-i18n="report.monthly">Monthly Breakdown</h3>
+          </div>
+          <div class="table-wrap">
+            <table class="report-table">
+              <thead><tr>
+                <th data-cp-i18n="col.month">Month</th>
+                <th data-cp-i18n="col.orders">Orders</th>
+                <th data-cp-i18n="col.revenue">Revenue</th>
+              </tr></thead>
+              <tbody id="monthlyReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3 data-cp-i18n="report.productSales">Product Sales Summary</h3>
+        </div>
+        <div class="card-body">
+          <div id="productSummary" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== SETTINGS ====== -->
+    <div class="panel" id="panelSettings">
+      <div style="max-width: 600px;">
+        <div class="settings-section">
+          <h3 data-cp-i18n="settings.security">Security</h3>
+          <div class="settings-row">
+            <div class="info">
+              <div class="title" data-cp-i18n="settings.changePin">Change PIN</div>
+              <div class="desc" data-cp-i18n="settings.changePinDesc">Update your 4-digit security PIN</div>
+            </div>
+            <button class="btn-sm sec" id="btnChangePin" data-cp-i18n="btn.change">Change</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-cp-i18n="settings.data">Data Management</h3>
+          <div class="settings-row">
+            <div class="info">
+              <div class="title" data-cp-i18n="settings.exportBackup">Export Backup</div>
+              <div class="desc" data-cp-i18n="settings.exportBackupDesc">Download current data as CSV file</div>
+            </div>
+            <button class="btn-sm pri" id="btnExportSettings" data-cp-i18n="btn.export">Export</button>
+          </div>
+          <div class="settings-row">
+            <div class="info">
+              <div class="title" data-cp-i18n="settings.resetData">Reset All Data</div>
+              <div class="desc" data-cp-i18n="settings.resetDataDesc">Permanently delete all orders and inventory records</div>
+            </div>
+            <button class="btn-sm danger" id="btnResetData" data-cp-i18n="btn.reset">Reset</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3 data-cp-i18n="settings.business">Business Info</h3>
+          <div class="card">
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="field-group">
+                  <label data-cp-i18n="field.bizName">Business Name</label>
+                  <input type="text" id="settingBizName" value="MS Coconut Wholesale" />
+                </div>
+                <div class="field-group">
+                  <label data-cp-i18n="field.phone">Phone</label>
+                  <input type="tel" id="settingPhone" value="+91 62024 32875" />
+                </div>
+                <div class="field-group full">
+                  <label data-cp-i18n="field.email">Email</label>
+                  <input type="text" id="settingEmail" value="mscoconutwholesale@gmail.com" />
+                </div>
+              </div>
+              <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+                <button class="btn-sm pri" id="btnSaveSettings"><i class="ph ph-floppy-disk"></i> <span data-cp-i18n="btn.save">Save</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /appShell -->
+
+<!-- ========== MODALS ========== -->
+
+<!-- Add/Edit Order Modal -->
+<div class="modal-backdrop" id="orderModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="orderModalTitle" data-cp-i18n="modal.addOrder">Add New Order</h3>
+      <button class="btn-icon" id="closeOrderModal"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field-group">
+          <label data-cp-i18n="field.customerName">Customer Name</label>
+          <input type="text" id="fName" required />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.mobile">Mobile</label>
+          <input type="tel" id="fMobile" inputmode="numeric" maxlength="10" />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.product">Product</label>
+          <select id="fProduct">
+            <option value="tender">Tender Coconut (कच्चा)</option>
+            <option value="puja">Puja Coconut (पूजा)</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.quantity">Quantity (pcs)</label>
+          <input type="number" id="fQty" min="1" value="1" />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.rate">Rate (Rs/pc)</label>
+          <input type="number" id="fRate" min="1" />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.total">Total (Auto)</label>
+          <input type="number" id="fTotal" readonly />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.date">Date</label>
+          <input type="date" id="fDate" />
+        </div>
+        <div class="field-group">
+          <label data-cp-i18n="field.status">Status</label>
+          <select id="fStatus">
+            <option value="pending">Pending</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="field-group full">
+          <label data-cp-i18n="field.address">Delivery Address</label>
+          <textarea id="fAddress" rows="2"></textarea>
+        </div>
+        <div class="field-group full">
+          <label data-cp-i18n="field.notes">Notes (optional)</label>
+          <input type="text" id="fNotes" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm sec" id="cancelOrderModal" data-cp-i18n="btn.cancel">Cancel</button>
+      <button class="btn-sm pri" id="saveOrderBtn"><i class="ph ph-floppy-disk"></i> <span data-cp-i18n="btn.save">Save Order</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Change PIN Modal -->
+<div class="modal-backdrop" id="pinModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 data-cp-i18n="modal.changePin">Change PIN</h3>
+      <button class="btn-icon" id="closePinModal"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label data-cp-i18n="field.oldPin">Current PIN</label>
+        <div class="pin-row" id="oldPinRow">
+          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label data-cp-i18n="field.newPin">New PIN</label>
+        <div class="pin-row" id="newPinRow">
+          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
+          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
+        </div>
+      </div>
+      <p id="pinChangeError" class="auth-error"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm sec" id="cancelPinModal" data-cp-i18n="btn.cancel">Cancel</button>
+      <button class="btn-sm pri" id="confirmPinChange"><i class="ph ph-check"></i> <span data-cp-i18n="btn.confirm">Confirm</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Confirm Modal -->
+<div class="modal-backdrop" id="resetModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 data-cp-i18n="modal.confirmReset">Confirm Reset</h3>
+      <button class="btn-icon" id="closeResetModal"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p data-cp-i18n="modal.resetWarning">Are you sure? This will permanently delete ALL orders and inventory data. This action cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm sec" id="cancelReset" data-cp-i18n="btn.cancel">Cancel</button>
+      <button class="btn-sm danger" id="confirmReset" data-cp-i18n="btn.confirmReset">Yes, Reset Everything</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Area -->
+<div class="toast-area" id="toastArea"></div>
+
+<!-- Unsaved Changes Bar -->
+<div class="unsaved-bar" id="unsavedBar">
+  <span><i class="ph ph-warning"></i> <span data-cp-i18n="unsaved.msg">You have unsaved changes.</span></span>
+  <button class="btn-sm pri" id="btnSaveUnsaved"><i class="ph ph-download-simple"></i> <span data-cp-i18n="btn.saveExport">Save & Export</span></button>
+</div>
+
+<script src="cpanel.js"></script>
+</body>
+</html>

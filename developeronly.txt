@@ -1,0 +1,14 @@
+https://formspree.io/f/xdaworqy
+1. integrate the formspree to the forms used in the website
+2. we need to fix the cta icon and use a premium icon library for the website.
+3. add an automatic theme feature which can detect the system theme and automatically adapts and also add a toggle button for the same.
+4. create a cta button for contact which should be fixed in the left side of the page it should be sleek and tempting it should be on everypages
+optimise the whole project for the use in Smartphones as this website can be and will be much lkely used in the smartphones leave no page or feature.
+5. Remember that the language settings can be toasted to the users when they interact for the first time and the preference should be saved in the cache memory of their devices locally so that whenever they visit they dont have to slelect manually everytime.
+6. optimise the seo and geo add a robot.txt file and sitemap.xml file. and also add a meta tags for all the pages.
+use this email id and phome no. 6202432875; mscoconutwholesale@gmail.com
+NOTE: you can use Bilingual Hindi/English i18n, Google Maps embed, scroll animations etc to make it look professional clean smooth and iteractive
+Part 2
+1. the user wants a Cpanel with built in application ready to use for their business to tract their sales and to record everything kind of an Emanager.
+2. we wont needd to share the data anywhere as the alient restricts, we have to use a different approach we will creat a csv or xml format file when the client logs in and everything will be stored in that file after the client sets his cpanel account.
+3. whenever the user logs in always ask for the generated csv or xml file "mswholesaledatadonotdelete" use this file name and check only for this file name this can act as a step two authentication open the panel.
