@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;700;800&display=swap" rel="stylesheet" />
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link rel="stylesheet" href="cpanel.css" />
+  <!-- Supabase Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -24,7 +26,7 @@
 
     <!-- Step 1: PIN -->
     <div id="stepPin" class="auth-step active">
-      <div class="auth-step-label"><i class="ph ph-lock"></i> <span data-cp-i18n="auth.step1label">Step 1 of 2</span></div>
+      <div class="auth-step-label"><i class="ph ph-lock"></i> <span data-cp-i18n="auth.step1label">Step 1 of 1</span></div>
       <h2 data-cp-i18n="auth.step1title">Enter Your PIN</h2>
       <p class="hint" data-cp-i18n="auth.step1hint">Enter your 4-digit security PIN to continue.</p>
       <div class="field-group">
@@ -37,34 +39,12 @@
       </div>
       <p id="pinError" class="auth-error"><i class="ph ph-warning"></i> <span data-cp-i18n="auth.wrongPin">Incorrect PIN. Please try again.</span></p>
       <button id="btnPinSubmit" class="btn-full btn-primary" disabled>
-        <i class="ph ph-arrow-right"></i> <span data-cp-i18n="auth.continue">Continue</span>
-      </button>
-      <p style="font-size:0.78rem; color:var(--muted); text-align:center; margin-top:1rem;" data-cp-i18n="auth.firstUseNote">First time? Default PIN is <strong>1234</strong>. Change it in Settings.</p>
-    </div>
-
-    <!-- Step 2: CSV File -->
-    <div id="stepFile" class="auth-step">
-      <div class="auth-step-label"><i class="ph ph-file-csv"></i> <span data-cp-i18n="auth.step2label">Step 2 of 2</span></div>
-      <h2 data-cp-i18n="auth.step2title">Upload Your Data File</h2>
-      <p class="hint" data-cp-i18n="auth.step2hint">Upload your <strong>mswholesaledatadonotdelete.csv</strong> file to load your business data.</p>
-
-      <div class="file-drop" id="fileDrop">
-        <i class="ph ph-upload-simple"></i>
-        <p data-cp-i18n="auth.fileDrop"><strong>Click or drag</strong> your data file here</p>
-        <p style="font-size:0.72rem; margin-top:0.3rem; color:var(--muted);" data-cp-i18n="auth.fileFormat">Accepted: mswholesaledatadonotdelete.csv only</p>
-        <p class="file-name" id="chosenFileName"></p>
-        <input type="file" id="csvFileInput" accept=".csv" />
-      </div>
-
-      <p id="fileError" class="auth-error"><i class="ph ph-warning"></i> <span id="fileErrorMsg"></span></p>
-
-      <button id="btnFileSubmit" class="btn-full btn-primary" disabled>
         <i class="ph ph-sign-in"></i> <span data-cp-i18n="auth.unlock">Unlock Panel</span>
       </button>
-      <button id="btnFirstUse" class="btn-full btn-ghost">
-        <i class="ph ph-sparkle"></i> <span data-cp-i18n="auth.firstUse">First time — Generate My Data File</span>
-      </button>
+      <p style="font-size:0.75rem; color:var(--muted); text-align:center; margin-top:1.5rem;" data-cp-i18n="auth.firstUseNote">Access restricted to business administrators only.</p>
     </div>
+
+
   </div>
 </div>
 

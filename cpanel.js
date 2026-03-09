@@ -5,11 +5,13 @@
 
 "use strict";
 
-// ─── CONSTANTS ────────────────────────────────────────────────
-const DATA_FILE_NAME = "mswholesaledatadonotdelete.csv";
 const DEFAULT_PIN    = "1234";
 const RATES = { tender: 45, puja: 35 };
-const CSV_HEADER = "id,date,customer_name,customer_mobile,product,quantity,rate,total,address,status,notes";
+
+// Supabase Configuration
+const SUPABASE_URL = "https://qlxtdsoawcidauruyvzy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFseHRkc29hd2NpZGF1cnV5dnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTg2NzksImV4cCI6MjA4ODU5NDY3OX0.xGv2itUtFZ7klaDhVgNcjg0kWg3gl1OtX0w_QTQWDZc";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── i18n DICTIONARY ──────────────────────────────────────────
 const cpI18n = {
@@ -221,12 +223,12 @@ const cpI18n = {
     "status.pending":    "Pending",
     "status.delivered":  "Delivered",
     "status.cancelled":  "Cancelled",
-    "toast.saved":       "Data saved successfully!",
-    "toast.orderAdded":  "Order added!",
+    "toast.saved":       "Data saved to cloud!",
+    "toast.orderAdded":  "Order added to cloud!",
     "toast.orderUpdated":"Order updated!",
     "toast.orderDeleted":"Order deleted!",
     "toast.pinChanged":  "PIN changed successfully!",
-    "toast.reset":       "All data has been reset.",
+    "toast.reset":       "All data has been wiped from cloud.",
     "toast.wrongOldPin": "Incorrect current PIN.",
   }
 };
@@ -247,56 +249,45 @@ let state = {
   charts: {}
 };
 
-// ─── IDB CACHE FOR FILE HANDLE ──────────────────────────────────
-const DB_STORE = "cpanel_store";
-function getDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open("CPanelDB", 1);
-    req.onupgradeneeded = e => { e.target.result.createObjectStore(DB_STORE); };
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
-  });
-}
-async function idbSet(key, val) {
+// ─── DB OPERATIONS ───────────────────────────────────────────
+async function fetchAllData() {
   try {
-    const db = await getDB();
-    const tx = db.transaction(DB_STORE, "readwrite");
-    tx.objectStore(DB_STORE).put(val, key);
-    return new Promise(res => tx.oncomplete = res);
-  } catch(e) { console.error("IDB Set Error", e); }
-}
-async function idbGet(key) {
-  try {
-    const db = await getDB();
-    const tx = db.transaction(DB_STORE, "readonly");
-    const req = tx.objectStore(DB_STORE).get(key);
-    return new Promise(res => req.onsuccess = () => res(req.result));
-  } catch(e) { console.error("IDB Get Error", e); return null; }
-}
+    // Fetch Orders
+    const { data: ords, error: e1 } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (e1) throw e1;
+    state.orders = ords || [];
 
-async function autoSaveData() {
-  const csvText = serializeCSV();
-  localStorage.setItem("cpanel_data", csvText);
-  sessionStorage.setItem("cpanel_active", "true");
+    // Fetch Inventory
+    const { data: inv, error: e2 } = await supabase.from('inventory').select('*').eq('id', 1).single();
+    if (e2) throw e2;
+    state.inventory = { tender: inv.tender || 0, puja: inv.puja || 0 };
 
-  if (window._selectedFileHandle && window._selectedFileHandle.createWritable) {
-    try {
-      const opts = { mode: 'readwrite' };
-      if ((await window._selectedFileHandle.queryPermission(opts)) !== 'granted') {
-          const perm = await window._selectedFileHandle.requestPermission(opts);
-          if (perm !== 'granted') throw new Error("Permission denied");
-      }
-      const writable = await window._selectedFileHandle.createWritable();
-      await writable.write(csvText);
-      await writable.close();
-      showToast(t("toast.saved"), "success");
-      setUnsaved(false);
-      return;
-    } catch (e) {
-      console.error("Auto-save direct write failed", e);
-    }
+    // Fetch Settings
+    const { data: sett, error: e3 } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (e3) throw e3;
+    state.settings = { bizName: sett.biz_name, phone: sett.phone, email: sett.email };
+    
+    return true;
+  } catch (e) {
+    console.error("Fetch Data Error:", e);
+    showToast("Error connecting to database.", "danger");
+    return false;
   }
-  setUnsaved(true);
+}
+
+async function syncInventory() {
+  await supabase.from('inventory').update({ 
+    tender: state.inventory.tender, 
+    puja: state.inventory.puja 
+  }).eq('id', 1);
+}
+
+async function syncSettings() {
+  await supabase.from('settings').update({
+    biz_name: state.settings.bizName,
+    phone: state.settings.phone,
+    email: state.settings.email
+  }).eq('id', 1);
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
@@ -364,13 +355,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyI18n();
   
   if (sessionStorage.getItem("cpanel_active") === "true") {
-     const cachedCsv = localStorage.getItem("cpanel_data");
-     if (cachedCsv) {
-        parseCSV(cachedCsv);
-        try { window._selectedFileHandle = await idbGet("fileHandle"); } catch(e) {}
+      const ok = await fetchAllData();
+      if (ok) {
         launchApp();
         return;
-     }
+      }
   }
 
   initAuth();
@@ -411,13 +400,19 @@ function initAuth() {
     document.getElementById("btnPinSubmit").disabled = !filled;
   }
 
-  document.getElementById("btnPinSubmit").addEventListener("click", () => {
+  document.getElementById("btnPinSubmit").addEventListener("click", async () => {
     const entered = [...pinDigits].map(el => el.value).join("");
-    const stored = localStorage.getItem("cpanel_pin") || DEFAULT_PIN;
-    if (entered === stored) {
+    
+    // Fetch PIN from Supabase
+    const { data, error } = await supabase.from('settings').select('pin').eq('id', 1).single();
+    
+    if (!error && data && entered === data.pin) {
       document.getElementById("pinError").classList.remove("show");
-      document.getElementById("stepPin").classList.remove("active");
-      document.getElementById("stepFile").classList.add("active");
+      const ok = await fetchAllData();
+      if (ok) {
+        sessionStorage.setItem("cpanel_active", "true");
+        launchApp();
+      }
     } else {
       document.getElementById("pinError").classList.add("show");
       pinDigits.forEach(el => el.value = "");
@@ -425,212 +420,24 @@ function initAuth() {
       updatePinSubmit();
     }
   });
-
-  // File drop zone
-  const dropZone = document.getElementById("fileDrop");
-  const fileInput = document.getElementById("csvFileInput");
-
-  dropZone.addEventListener("click", async () => {
-    if (window.showOpenFilePicker) {
-       try {
-         const [fileHandle] = await window.showOpenFilePicker({
-           types: [{ description: 'CSV Files', accept: {'text/csv': ['.csv']} }]
-         });
-         const file = await fileHandle.getFile();
-         if (file.name !== DATA_FILE_NAME) {
-           document.getElementById("fileError").classList.add("show");
-           document.getElementById("fileErrorMsg").textContent = `Invalid file. Please upload "${DATA_FILE_NAME}" only.`;
-           return;
-         }
-         window._selectedFileHandle = fileHandle;
-         idbSet("fileHandle", fileHandle);
-         
-         const reader = new FileReader();
-         reader.onload = e => {
-           parseCSV(e.target.result);
-           localStorage.setItem("cpanel_data", e.target.result);
-           sessionStorage.setItem("cpanel_active", "true");
-           launchApp();
-         };
-         reader.readAsText(file);
-       } catch (e) {
-         console.error("File selection cancelled or failed", e);
-       }
-    } else {
-       fileInput.click();
-    }
-  });
-
-  dropZone.addEventListener("dragover", e => {
-    e.preventDefault();
-    dropZone.classList.add("drag-over");
-  });
-  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
-  dropZone.addEventListener("drop", e => {
-    e.preventDefault();
-    dropZone.classList.remove("drag-over");
-    if (e.dataTransfer.files[0]) handleFileSelection(e.dataTransfer.files[0]);
-  });
-
-  fileInput.addEventListener("change", () => {
-    if (fileInput.files[0]) handleFileSelection(fileInput.files[0]);
-  });
-
-  function handleFileSelection(file) {
-    const errEl = document.getElementById("fileError");
-    const errMsg = document.getElementById("fileErrorMsg");
-    if (file.name !== DATA_FILE_NAME) {
-      errEl.classList.add("show");
-      errMsg.textContent = `Invalid file. Please upload "${DATA_FILE_NAME}" only.`;
-      document.getElementById("btnFileSubmit").disabled = true;
-      document.getElementById("chosenFileName").style.display = "none";
-      return;
-    }
-    errEl.classList.remove("show");
-    document.getElementById("chosenFileName").textContent = "✓ " + file.name;
-    document.getElementById("chosenFileName").style.display = "block";
-    document.getElementById("btnFileSubmit").disabled = false;
-    document.getElementById("btnFileSubmit").dataset.file = "ready";
-    window._selectedFile = file;
-  }
-
-  document.getElementById("btnFileSubmit").addEventListener("click", () => {
-    if (!window._selectedFile) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      parseCSV(e.target.result);
-      launchApp();
-    };
-    reader.readAsText(window._selectedFile);
-  });
-
-  // First-time use: generate empty
-  document.getElementById("btnFirstUse").addEventListener("click", async () => {
-    if (window.showSaveFilePicker) {
-      try {
-        const fileHandle = await window.showSaveFilePicker({
-          suggestedName: DATA_FILE_NAME,
-          types: [{ description: 'CSV Files', accept: {'text/csv': ['.csv']} }]
-        });
-        window._selectedFileHandle = fileHandle;
-        idbSet("fileHandle", fileHandle);
-        state.orders = [];
-        state.inventory = { tender: 0, puja: 0 };
-        await autoSaveData();
-        launchApp();
-      } catch (e) {
-        console.error("First use creation cancelled", e);
-      }
-    } else {
-       generateAndDownloadCSV([], { tender: 0, puja: 0 });
-       sessionStorage.setItem("cpanel_active", "true");
-       launchApp();
-    }
-  });
 }
 
-// ─── CSV ENGINE ───────────────────────────────────────────────
-function parseCSV(text) {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) { state.orders = []; return; }
-
-  // Check header
-  const header = lines[0].trim();
-  if (!header.startsWith("id,date")) { state.orders = []; return; }
-
-  // Check for inventory line (last line starts with "#INV")
-  let orderLines = lines.slice(1);
-  const lastLine = orderLines[orderLines.length - 1];
-  if (lastLine && lastLine.startsWith("#INV:")) {
-    const parts = lastLine.replace("#INV:", "").split(",");
-    state.inventory.tender = parseInt(parts[0]) || 0;
-    state.inventory.puja   = parseInt(parts[1]) || 0;
-    orderLines = orderLines.slice(0, -1);
-  }
-
-  state.orders = orderLines
-    .filter(l => l.trim() && !l.startsWith("#"))
-    .map(line => {
-      const cols = parseCSVLine(line);
-      return {
-        id:              cols[0]  || uuid(),
-        date:            cols[1]  || todayISO(),
-        customer_name:   cols[2]  || "",
-        customer_mobile: cols[3]  || "",
-        product:         cols[4]  || "tender",
-        quantity:        Number(cols[5]) || 0,
-        rate:            Number(cols[6]) || 0,
-        total:           Number(cols[7]) || 0,
-        address:         cols[8]  || "",
-        status:          cols[9]  || "pending",
-        notes:           cols[10] || ""
-      };
-    });
-}
-
-function parseCSVLine(line) {
-  // Handle quoted fields
-  const result = [];
-  let cur = "", inQ = false;
-  for (let ch of line) {
-    if (ch === '"') { inQ = !inQ; continue; }
-    if (ch === "," && !inQ) { result.push(cur); cur = ""; continue; }
-    cur += ch;
-  }
-  result.push(cur);
-  return result;
-}
-
-function escapeCSV(val) {
-  if (val == null) return "";
-  const s = String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
-  return s;
-}
-
-function serializeCSV() {
-  const rows = [CSV_HEADER];
-  state.orders.forEach(o => {
-    rows.push([o.id, o.date, o.customer_name, o.customer_mobile, o.product,
-               o.quantity, o.rate, o.total, o.address, o.status, o.notes]
-              .map(escapeCSV).join(","));
+// Support functions for downloading CSV (legacy export only)
+async function generateAndDownloadCSV() {
+  const { data: orders } = await supabase.from('orders').select('*');
+  const csvRows = ["id,customer_name,customer_mobile,product,quantity,rate,total,address,status,created_at"];
+  orders.forEach(o => {
+    csvRows.push([o.id, o.customer_name, o.customer_mobile, o.product, o.quantity, o.rate, o.total, `"${o.address}"`, o.status, o.created_at].join(","));
   });
-  rows.push(`#INV:${state.inventory.tender},${state.inventory.puja}`);
-  return rows.join("\n");
-}
-
-async function generateAndDownloadCSV(orders = state.orders, inventory = state.inventory) {
-  const csvText = serializeCSV();
-  
-  if (window._selectedFileHandle && window._selectedFileHandle.createWritable) {
-     try {
-         const opts = { mode: 'readwrite' };
-         if ((await window._selectedFileHandle.queryPermission(opts)) !== 'granted') {
-             if ((await window._selectedFileHandle.requestPermission(opts)) !== 'granted') 
-                 throw new Error("No permission");
-         }
-         const writable = await window._selectedFileHandle.createWritable();
-         await writable.write(csvText);
-         await writable.close();
-         showToast(t("toast.saved"), "success");
-         setUnsaved(false);
-         return;
-     } catch (e) {
-         console.error("Direct export failed", e);
-     }
-  }
-
+  const csvText = csvRows.join("\n");
   const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = DATA_FILE_NAME;
+  a.download = `orders_backup_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  setUnsaved(false);
-  showToast(t("toast.saved"), "success");
+  showToast("Backup downloaded!");
 }
 
 // ─── LAUNCH APP ───────────────────────────────────────────────
@@ -724,7 +531,7 @@ function setUnsaved(val) {
 }
 
 window.addEventListener("beforeunload", e => {
-  if (state.unsaved) { e.preventDefault(); e.returnValue = ""; }
+  // Persistence handled by DB
 });
 
 // ─── RENDER ALL ───────────────────────────────────────────────
@@ -1012,12 +819,11 @@ function initOrderForm() {
   document.getElementById("saveOrderBtn").addEventListener("click", saveOrder);
 }
 
-function saveOrder() {
+async function saveOrder() {
   const name = document.getElementById("fName").value.trim();
   if (!name) { document.getElementById("fName").focus(); return; }
 
   const order = {
-    id: state.editingOrderId || uuid(),
     date: document.getElementById("fDate").value || todayISO(),
     customer_name: name,
     customer_mobile: document.getElementById("fMobile").value.trim(),
@@ -1030,26 +836,36 @@ function saveOrder() {
     notes: document.getElementById("fNotes").value.trim()
   };
 
-  if (state.editingOrderId) {
-    const idx = state.orders.findIndex(o => o.id === state.editingOrderId);
-    if (idx !== -1) state.orders[idx] = order;
-    showToast(t("toast.orderUpdated"), "info");
-  } else {
-    state.orders.unshift(order);
-    showToast(t("toast.orderAdded"), "success");
+  try {
+    if (state.editingOrderId) {
+      const { error } = await supabase.from('orders').update(order).eq('id', state.editingOrderId);
+      if (error) throw error;
+      showToast(t("toast.orderUpdated"), "info");
+    } else {
+      const { error } = await supabase.from('orders').insert([order]);
+      if (error) throw error;
+      showToast(t("toast.orderAdded"), "success");
+    }
+    await fetchAllData();
+    closeOrderModal();
+    renderAll();
+  } catch (e) {
+    console.error("Save Order Error:", e);
+    showToast("Failed to save order.", "danger");
   }
-
-  autoSaveData();
-  closeOrderModal();
-  renderAll();
 }
 
-window.deleteOrder = function(id) {
+window.deleteOrder = async function(id) {
   if (!confirm("Delete this order?")) return;
-  state.orders = state.orders.filter(o => o.id !== id);
-  autoSaveData();
-  showToast(t("toast.orderDeleted"), "danger");
-  renderAll();
+  try {
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) throw error;
+    await fetchAllData();
+    showToast(t("toast.orderDeleted"), "danger");
+    renderAll();
+  } catch (e) {
+    showToast("Delete failed", "danger");
+  }
 };
 
 // ─── INVENTORY ────────────────────────────────────────────────
@@ -1083,11 +899,13 @@ function renderInventory() {
   }).join("");
 }
 
-window.adjustStock = function(key, dir) {
+window.adjustStock = async function(key, dir) {
   const qty = parseInt(document.getElementById(`invQty_${key}`)?.value) || 10;
   state.inventory[key] = Math.max(0, (state.inventory[key] || 0) + (dir * qty));
-  autoSaveData();
+  
+  await syncInventory();
   renderInventory();
+  showToast(t("toast.saved"), "info");
 };
 
 // ─── REPORTS ──────────────────────────────────────────────────
@@ -1161,10 +979,12 @@ function renderReports() {
 
 // ─── SETTINGS ─────────────────────────────────────────────────
 function initSettings() {
-  document.getElementById("btnSaveSettings")?.addEventListener("click", () => {
+  document.getElementById("btnSaveSettings")?.addEventListener("click", async () => {
     state.settings.bizName = document.getElementById("settingBizName").value;
     state.settings.phone   = document.getElementById("settingPhone").value;
     state.settings.email   = document.getElementById("settingEmail").value;
+    
+    await syncSettings();
     showToast(t("btn.save") + " ✓", "success");
   });
   document.getElementById("btnResetData")?.addEventListener("click", () => {
@@ -1200,10 +1020,12 @@ function initPinChangeModal() {
   document.getElementById("cancelPinModal")?.addEventListener("click", () => {
     document.getElementById("pinModal").classList.remove("open");
   });
-  document.getElementById("confirmPinChange")?.addEventListener("click", () => {
+  document.getElementById("confirmPinChange")?.addEventListener("click", async () => {
     const oldPin = [...document.querySelectorAll(".chg-pin-digit.old")].map(el=>el.value).join("");
     const newPin = [...document.querySelectorAll(".chg-pin-digit.new")].map(el=>el.value).join("");
-    const stored = localStorage.getItem("cpanel_pin") || DEFAULT_PIN;
+    
+    const { data: sett } = await supabase.from('settings').select('pin').eq('id', 1).single();
+    const stored = sett?.pin || DEFAULT_PIN;
     const errEl  = document.getElementById("pinChangeError");
 
     if (oldPin !== stored) {
@@ -1216,7 +1038,9 @@ function initPinChangeModal() {
       errEl.classList.add("show");
       return;
     }
-    localStorage.setItem("cpanel_pin", newPin);
+    
+    await supabase.from('settings').update({ pin: newPin }).eq('id', 1);
+    
     document.getElementById("pinModal").classList.remove("open");
     showToast(t("toast.pinChanged"), "success");
     errEl.classList.remove("show");
@@ -1231,10 +1055,12 @@ function initResetModal() {
   document.getElementById("cancelReset")?.addEventListener("click", () => {
     document.getElementById("resetModal").classList.remove("open");
   });
-  document.getElementById("confirmReset")?.addEventListener("click", () => {
-    state.orders = [];
-    state.inventory = { tender: 0, puja: 0 };
-    autoSaveData();
+  document.getElementById("confirmReset")?.addEventListener("click", async () => {
+    // Reset DB
+    await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+    await supabase.from('inventory').update({ tender: 0, puja: 0 }).eq('id', 1);
+    
+    await fetchAllData();
     document.getElementById("resetModal").classList.remove("open");
     showToast(t("toast.reset"), "danger");
     renderAll();

@@ -5,6 +5,11 @@ const RATES = {
   puja: 35,
 };
 
+// Supabase Configuration
+const SUPABASE_URL = "https://qlxtdsoawcidauruyvzy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFseHRkc29hd2NpZGF1cnV5dnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTg2NzksImV4cCI6MjA4ODU5NDY3OX0.xGv2itUtFZ7klaDhVgNcjg0kWg3gl1OtX0w_QTQWDZc";
+const supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 const translations = {
   hi: {
     "nav.home": "होम",
@@ -349,34 +354,37 @@ orderForm.addEventListener("submit", async (event) => {
   };
 
   try {
-    const response = await fetch(orderForm.action, {
-      method: "POST",
-      body: new FormData(orderForm),
-      headers: {
-        Accept: "application/json",
-      },
-    });
+    if (!supabase) throw new Error("Supabase client not loaded");
 
-    if (response.ok) {
-      showToast("Order details saved! Redirecting to WhatsApp...");
-      formStatus.textContent = "";
-      formStatus.className = "form-status";
-      orderForm.reset();
-      refreshRateUI();
+    const { error: sbError } = await supabase.from('orders').insert([{
+      customer_name: formData.name,
+      customer_mobile: formData.mobile,
+      product: productSelect.value, // 'tender' or 'puja'
+      quantity: Number(formData.quantity),
+      rate: Number(getSelectedRate()),
+      total: Number(formData.quantity) * Number(getSelectedRate()),
+      address: formData.address,
+      status: 'pending'
+    }]);
 
-      setTimeout(() => {
-        const message = createWhatsAppMessage(formData);
-        openWhatsApp(message);
-      }, 1500);
-    } else {
-      throw new Error("Form submission failed");
-    }
+    if (sbError) throw sbError;
+
+    showToast(currentLang === 'hi' ? "ऑर्डर सेव हो गया! व्हाट्सएप पर भेज रहे हैं..." : "Order saved to cloud! Redirecting to WhatsApp...");
+    formStatus.textContent = "";
+    formStatus.className = "form-status";
+    orderForm.reset();
+    refreshRateUI();
+
+    setTimeout(() => {
+      const message = createWhatsAppMessage(formData);
+      openWhatsApp(message);
+    }, 1500);
   } catch (error) {
-    formStatus.textContent =
-      "Error submitting order. Please try WhatsApp directly.";
+    console.error("Supabase Error:", error);
+    formStatus.textContent = currentLang === 'hi' ? "टूट गया! व्हाट्सएप पर सीधे भेजें।" : "Error syncing to cloud. Redirecting to WhatsApp...";
     formStatus.className = "form-status error";
-    // Fallback if formspree fails
-    showToast("Redirecting to WhatsApp fallback...");
+    
+    // Fallback to WhatsApp even if DB fails
     setTimeout(() => {
       const message = createWhatsAppMessage(formData);
       openWhatsApp(message);
