@@ -11,7 +11,7 @@ const RATES = { tender: 45, puja: 35 };
 // Supabase Configuration
 const SUPABASE_URL = "https://qlxtdsoawcidauruyvzy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFseHRkc29hd2NpZGF1cnV5dnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTg2NzksImV4cCI6MjA4ODU5NDY3OX0.xGv2itUtFZ7klaDhVgNcjg0kWg3gl1OtX0w_QTQWDZc";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── i18n DICTIONARY ──────────────────────────────────────────
 const cpI18n = {
@@ -253,19 +253,24 @@ let state = {
 async function fetchAllData() {
   try {
     // Fetch Orders
-    const { data: ords, error: e1 } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    const { data: ords, error: e1 } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
     if (e1) throw e1;
-    state.orders = ords || [];
+    state.orders = (ords || []).map(o => ({
+      ...o,
+      date: o.date || (o.created_at ? o.created_at.split('T')[0] : todayISO())
+    }));
 
-    // Fetch Inventory
-    const { data: inv, error: e2 } = await supabase.from('inventory').select('*').eq('id', 1).single();
-    if (e2) throw e2;
-    state.inventory = { tender: inv.tender || 0, puja: inv.puja || 0 };
+    // Fetch Inventory (graceful fallback)
+    const { data: inv, error: e2 } = await supabaseClient.from('inventory').select('*').eq('id', 1).single();
+    if (!e2 && inv) {
+      state.inventory = { tender: inv.tender || 0, puja: inv.puja || 0 };
+    }
 
-    // Fetch Settings
-    const { data: sett, error: e3 } = await supabase.from('settings').select('*').eq('id', 1).single();
-    if (e3) throw e3;
-    state.settings = { bizName: sett.biz_name, phone: sett.phone, email: sett.email };
+    // Fetch Settings (graceful fallback)
+    const { data: sett, error: e3 } = await supabaseClient.from('settings').select('*').eq('id', 1).single();
+    if (!e3 && sett) {
+      state.settings = { bizName: sett.biz_name, phone: sett.phone, email: sett.email };
+    }
     
     return true;
   } catch (e) {
@@ -276,14 +281,14 @@ async function fetchAllData() {
 }
 
 async function syncInventory() {
-  await supabase.from('inventory').update({ 
+  await supabaseClient.from('inventory').update({ 
     tender: state.inventory.tender, 
     puja: state.inventory.puja 
   }).eq('id', 1);
 }
 
 async function syncSettings() {
-  await supabase.from('settings').update({
+  await supabaseClient.from('settings').update({
     biz_name: state.settings.bizName,
     phone: state.settings.phone,
     email: state.settings.email
@@ -355,7 +360,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyI18n();
   
   // Check for Supabase Auth session
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
   
   if (session) {
     const ok = await fetchAllData();
@@ -403,7 +408,7 @@ function initAuth() {
     btnLogin.disabled = true;
     btnLogin.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Signing in...';
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
       errEl.classList.add("show");
@@ -425,7 +430,7 @@ function initAuth() {
 
 // Support functions for downloading CSV (legacy export only)
 async function generateAndDownloadCSV() {
-  const { data: orders } = await supabase.from('orders').select('*');
+  const { data: orders } = await supabaseClient.from('orders').select('*');
   const csvRows = ["id,customer_name,customer_mobile,product,quantity,rate,total,address,status,created_at"];
   orders.forEach(o => {
     csvRows.push([o.id, o.customer_name, o.customer_mobile, o.product, o.quantity, o.rate, o.total, `"${o.address}"`, o.status, o.created_at].join(","));
@@ -477,7 +482,7 @@ function initSidebar() {
   document.getElementById("sidebarOverlay").addEventListener("click", closeSidebar);
 
   document.getElementById("btnLogout").addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     location.reload();
   });
 }
@@ -833,11 +838,11 @@ async function saveOrder() {
 
   try {
     if (state.editingOrderId) {
-      const { error } = await supabase.from('orders').update(order).eq('id', state.editingOrderId);
+      const { error } = await supabaseClient.from('orders').update(order).eq('id', state.editingOrderId);
       if (error) throw error;
       showToast(t("toast.orderUpdated"), "info");
     } else {
-      const { error } = await supabase.from('orders').insert([order]);
+      const { error } = await supabaseClient.from('orders').insert([order]);
       if (error) throw error;
       showToast(t("toast.orderAdded"), "success");
     }
@@ -853,7 +858,7 @@ async function saveOrder() {
 window.deleteOrder = async function(id) {
   if (!confirm("Delete this order?")) return;
   try {
-    const { error } = await supabase.from('orders').delete().eq('id', id);
+    const { error } = await supabaseClient.from('orders').delete().eq('id', id);
     if (error) throw error;
     await fetchAllData();
     showToast(t("toast.orderDeleted"), "danger");
@@ -999,8 +1004,8 @@ function initResetModal() {
   });
   document.getElementById("confirmReset")?.addEventListener("click", async () => {
     // Reset DB
-    await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
-    await supabase.from('inventory').update({ tender: 0, puja: 0 }).eq('id', 1);
+    await supabaseClient.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+    await supabaseClient.from('inventory').update({ tender: 0, puja: 0 }).eq('id', 1);
     
     await fetchAllData();
     document.getElementById("resetModal").classList.remove("open");

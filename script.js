@@ -5,10 +5,7 @@ const RATES = {
   puja: 35,
 };
 
-// Supabase Configuration
-const SUPABASE_URL = "https://qlxtdsoawcidauruyvzy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFseHRkc29hd2NpZGF1cnV5dnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTg2NzksImV4cCI6MjA4ODU5NDY3OX0.xGv2itUtFZ7klaDhVgNcjg0kWg3gl1OtX0w_QTQWDZc";
-const supabase = typeof supabase !== 'undefined' ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const translations = {
   hi: {
@@ -354,9 +351,9 @@ orderForm.addEventListener("submit", async (event) => {
   };
 
   try {
-    if (!supabase) throw new Error("Supabase client not loaded");
+    if (!supabaseClient) throw new Error("Supabase client not loaded");
 
-    const { error: sbError } = await supabase.from('orders').insert([{
+    const { error: sbError } = await supabaseClient.from('orders').insert([{
       customer_name: formData.name,
       customer_mobile: formData.mobile,
       product: productSelect.value, // 'tender' or 'puja'
