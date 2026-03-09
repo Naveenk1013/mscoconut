@@ -823,8 +823,8 @@ async function saveOrder() {
   const name = document.getElementById("fName").value.trim();
   if (!name) { document.getElementById("fName").focus(); return; }
 
+  // Prepare order data (using created_at logic if date column is missing)
   const order = {
-    date: document.getElementById("fDate").value || todayISO(),
     customer_name: name,
     customer_mobile: document.getElementById("fMobile").value.trim(),
     product: document.getElementById("fProduct").value,
@@ -836,14 +836,33 @@ async function saveOrder() {
     notes: document.getElementById("fNotes").value.trim()
   };
 
+  // Only add 'date' if specifically set and not empty, 
+  // though it may still fail if column is missing.
+  const customDate = document.getElementById("fDate").value;
+  if (customDate) order.date = customDate;
+
   try {
     if (state.editingOrderId) {
       const { error } = await supabaseClient.from('orders').update(order).eq('id', state.editingOrderId);
-      if (error) throw error;
+      if (error) {
+        // Fallback for missing 'date' column in older schemas
+        if (error.code === 'PGRST204' && error.message.includes("'date'")) {
+          delete order.date;
+          const { error: retryErr } = await supabaseClient.from('orders').update(order).eq('id', state.editingOrderId);
+          if (retryErr) throw retryErr;
+        } else throw error;
+      }
       showToast(t("toast.orderUpdated"), "info");
     } else {
       const { error } = await supabaseClient.from('orders').insert([order]);
-      if (error) throw error;
+      if (error) {
+        // Fallback for missing 'date' column in older schemas
+        if (error.code === 'PGRST204' && error.message.includes("'date'")) {
+          delete order.date;
+          const { error: retryErr } = await supabaseClient.from('orders').insert([order]);
+          if (retryErr) throw retryErr;
+        } else throw error;
+      }
       showToast(t("toast.orderAdded"), "success");
     }
     await fetchAllData();
