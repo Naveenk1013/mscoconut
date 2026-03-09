@@ -12,3 +12,11 @@ Part 2
 1. the user wants a Cpanel with built in application ready to use for their business to tract their sales and to record everything kind of an Emanager.
 2. we wont needd to share the data anywhere as the alient restricts, we have to use a different approach we will creat a csv or xml format file when the client logs in and everything will be stored in that file after the client sets his cpanel account.
 3. whenever the user logs in always ask for the generated csv or xml file "mswholesaledatadonotdelete" use this file name and check only for this file name this can act as a step two authentication open the panel.
+
+supabase authentication
+PASSWORD: mscoconutwholesale@
+postgresql://postgres:[YOUR-PASSWORD]@db.qlxtdsoawcidauruyvzy.supabase.co:5432/postgres
+
+project url: https://qlxtdsoawcidauruyvzy.supabase.co
+publishable key: sb_publishable_5E98VNQD781kY74klP2HMg_ov2oKtF3
+anon key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFseHRkc29hd2NpZGF1cnV5dnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMTg2NzksImV4cCI6MjA4ODU5NDY3OX0.xGv2itUtFZ7klaDhVgNcjg0kWg3gl1OtX0w_QTQWDZc

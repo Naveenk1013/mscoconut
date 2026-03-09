@@ -354,12 +354,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyTheme(savedTheme);
   applyI18n();
   
-  if (sessionStorage.getItem("cpanel_active") === "true") {
-      const ok = await fetchAllData();
-      if (ok) {
-        launchApp();
-        return;
-      }
+  // Check for Supabase Auth session
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (session) {
+    const ok = await fetchAllData();
+    if (ok) {
+      launchApp();
+      return;
+    }
   }
 
   initAuth();
@@ -381,43 +384,41 @@ function showToast(message, type = "success") {
 
 // ─── AUTH MODULE ─────────────────────────────────────────────
 function initAuth() {
-  const pinDigits = document.querySelectorAll(".pin-digit");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPass = document.getElementById("loginPassword");
+  const btnLogin = document.getElementById("btnLoginSubmit");
+  const errEl = document.getElementById("loginError");
+  const errMsg = document.getElementById("loginErrorMsg");
 
-  // PIN digit auto-advance
-  pinDigits.forEach((input, i) => {
-    input.addEventListener("input", () => {
-      input.value = input.value.replace(/\D/g, "").slice(-1);
-      if (input.value && i < pinDigits.length - 1) pinDigits[i+1].focus();
-      updatePinSubmit();
-    });
-    input.addEventListener("keydown", e => {
-      if (e.key === "Backspace" && !input.value && i > 0) pinDigits[i-1].focus();
-    });
-  });
+  btnLogin.addEventListener("click", async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPass.value;
 
-  function updatePinSubmit() {
-    const filled = [...pinDigits].every(el => el.value.length === 1);
-    document.getElementById("btnPinSubmit").disabled = !filled;
-  }
+    if (!email || !password) {
+      errEl.classList.add("show");
+      errMsg.textContent = "Please enter both email and password.";
+      return;
+    }
 
-  document.getElementById("btnPinSubmit").addEventListener("click", async () => {
-    const entered = [...pinDigits].map(el => el.value).join("");
-    
-    // Fetch PIN from Supabase
-    const { data, error } = await supabase.from('settings').select('pin').eq('id', 1).single();
-    
-    if (!error && data && entered === data.pin) {
-      document.getElementById("pinError").classList.remove("show");
+    btnLogin.disabled = true;
+    btnLogin.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Signing in...';
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errEl.classList.add("show");
+      errMsg.textContent = error.message;
+      btnLogin.disabled = false;
+      btnLogin.innerHTML = '<i class="ph ph-sign-in"></i> Sign In';
+    } else {
+      errEl.classList.remove("show");
       const ok = await fetchAllData();
       if (ok) {
-        sessionStorage.setItem("cpanel_active", "true");
         launchApp();
+      } else {
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = '<i class="ph ph-sign-in"></i> Sign In';
       }
-    } else {
-      document.getElementById("pinError").classList.add("show");
-      pinDigits.forEach(el => el.value = "");
-      pinDigits[0].focus();
-      updatePinSubmit();
     }
   });
 }
@@ -450,7 +451,6 @@ function launchApp() {
   initSidebar();
   initTopbar();
   initOrderForm();
-  initPinChangeModal();
   initResetModal();
   initInventoryPanel();
   initSettings();
@@ -476,12 +476,8 @@ function initSidebar() {
 
   document.getElementById("sidebarOverlay").addEventListener("click", closeSidebar);
 
-  document.getElementById("btnExportCsv").addEventListener("click", generateAndDownloadCSV);
-  document.getElementById("btnExportSettings").addEventListener("click", generateAndDownloadCSV);
-  document.getElementById("btnLogout").addEventListener("click", () => {
-    if (state.unsaved && !confirm("You have unsaved changes. Logout anyway?")) return;
-    sessionStorage.removeItem("cpanel_active");
-    localStorage.removeItem("cpanel_data");
+  document.getElementById("btnLogout").addEventListener("click", async () => {
+    await supabase.auth.signOut();
     location.reload();
   });
 }
@@ -520,7 +516,6 @@ function initTopbar() {
 
   document.getElementById("btnAddOrderTop").addEventListener("click", openAddOrderModal);
   document.getElementById("btnAddOrderPanel").addEventListener("click", openAddOrderModal);
-  document.getElementById("btnSaveUnsaved").addEventListener("click", generateAndDownloadCSV);
 }
 
 // ─── UNSAVED STATE ────────────────────────────────────────────
@@ -990,62 +985,9 @@ function initSettings() {
   document.getElementById("btnResetData")?.addEventListener("click", () => {
     document.getElementById("resetModal").classList.add("open");
   });
-  document.getElementById("btnChangePin")?.addEventListener("click", () => {
-    document.getElementById("pinModal").classList.add("open");
-    document.querySelectorAll(".chg-pin-digit").forEach(el => el.value = "");
-    document.querySelector(".chg-pin-digit.old")?.focus();
-  });
 }
 
-// ─── PIN CHANGE MODAL ─────────────────────────────────────────
-function initPinChangeModal() {
-  const initPinRow = (selector) => {
-    const digits = document.querySelectorAll(selector);
-    digits.forEach((input, i) => {
-      input.addEventListener("input", () => {
-        input.value = input.value.replace(/\D/g, "").slice(-1);
-        if (input.value && i < digits.length - 1) digits[i+1].focus();
-      });
-      input.addEventListener("keydown", e => {
-        if (e.key === "Backspace" && !input.value && i > 0) digits[i-1].focus();
-      });
-    });
-  };
-  initPinRow(".chg-pin-digit.old");
-  initPinRow(".chg-pin-digit.new");
 
-  document.getElementById("closePinModal")?.addEventListener("click", () => {
-    document.getElementById("pinModal").classList.remove("open");
-  });
-  document.getElementById("cancelPinModal")?.addEventListener("click", () => {
-    document.getElementById("pinModal").classList.remove("open");
-  });
-  document.getElementById("confirmPinChange")?.addEventListener("click", async () => {
-    const oldPin = [...document.querySelectorAll(".chg-pin-digit.old")].map(el=>el.value).join("");
-    const newPin = [...document.querySelectorAll(".chg-pin-digit.new")].map(el=>el.value).join("");
-    
-    const { data: sett } = await supabase.from('settings').select('pin').eq('id', 1).single();
-    const stored = sett?.pin || DEFAULT_PIN;
-    const errEl  = document.getElementById("pinChangeError");
-
-    if (oldPin !== stored) {
-      errEl.textContent = t("toast.wrongOldPin");
-      errEl.classList.add("show");
-      return;
-    }
-    if (newPin.length !== 4) {
-      errEl.textContent = "New PIN must be 4 digits.";
-      errEl.classList.add("show");
-      return;
-    }
-    
-    await supabase.from('settings').update({ pin: newPin }).eq('id', 1);
-    
-    document.getElementById("pinModal").classList.remove("open");
-    showToast(t("toast.pinChanged"), "success");
-    errEl.classList.remove("show");
-  });
-}
 
 // ─── RESET MODAL ──────────────────────────────────────────────
 function initResetModal() {

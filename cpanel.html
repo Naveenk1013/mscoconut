@@ -26,22 +26,27 @@
 
     <!-- Step 1: PIN -->
     <div id="stepPin" class="auth-step active">
-      <div class="auth-step-label"><i class="ph ph-lock"></i> <span data-cp-i18n="auth.step1label">Step 1 of 1</span></div>
-      <h2 data-cp-i18n="auth.step1title">Enter Your PIN</h2>
-      <p class="hint" data-cp-i18n="auth.step1hint">Enter your 4-digit security PIN to continue.</p>
-      <div class="field-group">
-        <div class="pin-row">
-          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
-          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
-          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
-          <input type="password" class="pin-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="off" />
+      <div class="auth-step-label"><i class="ph ph-user-lock"></i> <span data-cp-i18n="auth.step1label">Admin Login</span></div>
+      <h2 data-cp-i18n="auth.step1title">Sign In to eManager</h2>
+      <p class="hint" data-cp-i18n="auth.step1hint">Enter your business credentials to continue.</p>
+      
+      <div class="field-group" style="margin-top: 1.5rem;">
+        <div class="input-with-icon" style="margin-bottom: 1rem;">
+          <i class="ph ph-envelope"></i>
+          <input type="email" id="loginEmail" placeholder="Email Address" required style="width:100%; padding: 0.8rem 0.8rem 0.8rem 2.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);" />
+        </div>
+        <div class="input-with-icon">
+          <i class="ph ph-lock"></i>
+          <input type="password" id="loginPassword" placeholder="Password" required style="width:100%; padding: 0.8rem 0.8rem 0.8rem 2.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);" />
         </div>
       </div>
-      <p id="pinError" class="auth-error"><i class="ph ph-warning"></i> <span data-cp-i18n="auth.wrongPin">Incorrect PIN. Please try again.</span></p>
-      <button id="btnPinSubmit" class="btn-full btn-primary" disabled>
-        <i class="ph ph-sign-in"></i> <span data-cp-i18n="auth.unlock">Unlock Panel</span>
+
+      <p id="loginError" class="auth-error"><i class="ph ph-warning"></i> <span id="loginErrorMsg">Invalid credentials.</span></p>
+      
+      <button id="btnLoginSubmit" class="btn-full btn-primary">
+        <i class="ph ph-sign-in"></i> <span data-cp-i18n="auth.unlock">Sign In</span>
       </button>
-      <p style="font-size:0.75rem; color:var(--muted); text-align:center; margin-top:1.5rem;" data-cp-i18n="auth.firstUseNote">Access restricted to business administrators only.</p>
+      <p style="font-size:0.75rem; color:var(--muted); text-align:center; margin-top:1.5rem;" data-cp-i18n="auth.firstUseNote">Access restricted to authorized personnel only.</p>
     </div>
 
 
@@ -86,9 +91,6 @@
     </nav>
 
     <div class="sidebar-footer">
-      <button class="btn-sm sec" id="btnExportCsv" style="width:100%; justify-content:center;">
-        <i class="ph ph-download-simple"></i><span data-cp-i18n="btn.saveExport">Save & Export</span>
-      </button>
       <button class="btn-sm danger" id="btnLogout" style="width:100%; justify-content:center; margin-bottom:1rem;">
         <i class="ph ph-sign-out"></i><span data-cp-i18n="btn.logout">Logout</span>
       </button>
@@ -301,10 +303,9 @@
           <h3 data-cp-i18n="settings.security">Security</h3>
           <div class="settings-row">
             <div class="info">
-              <div class="title" data-cp-i18n="settings.changePin">Change PIN</div>
-              <div class="desc" data-cp-i18n="settings.changePinDesc">Update your 4-digit security PIN</div>
+              <div class="title" data-cp-i18n="settings.auth">Authentication</div>
+              <div class="desc">Managed by Supabase Cloud Auth</div>
             </div>
-            <button class="btn-sm sec" id="btnChangePin" data-cp-i18n="btn.change">Change</button>
           </div>
         </div>
         <div class="settings-section">
@@ -421,40 +422,7 @@
   </div>
 </div>
 
-<!-- Change PIN Modal -->
-<div class="modal-backdrop" id="pinModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 data-cp-i18n="modal.changePin">Change PIN</h3>
-      <button class="btn-icon" id="closePinModal"><i class="ph ph-x"></i></button>
-    </div>
-    <div class="modal-body">
-      <div class="field-group">
-        <label data-cp-i18n="field.oldPin">Current PIN</label>
-        <div class="pin-row" id="oldPinRow">
-          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit old" maxlength="1" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="field-group">
-        <label data-cp-i18n="field.newPin">New PIN</label>
-        <div class="pin-row" id="newPinRow">
-          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
-          <input type="password" class="chg-pin-digit new" maxlength="1" inputmode="numeric" />
-        </div>
-      </div>
-      <p id="pinChangeError" class="auth-error"></p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-sm sec" id="cancelPinModal" data-cp-i18n="btn.cancel">Cancel</button>
-      <button class="btn-sm pri" id="confirmPinChange"><i class="ph ph-check"></i> <span data-cp-i18n="btn.confirm">Confirm</span></button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Reset Confirm Modal -->
 <div class="modal-backdrop" id="resetModal">
