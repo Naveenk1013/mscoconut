@@ -2,7 +2,7 @@
 
 const RATES = {
   tender: 45,
-  puja: 35,
+  pooja: 35,
 };
 
 // Supabase Configuration
@@ -40,13 +40,13 @@ const translations = {
     "products.tender.f2": "प्राकृतिक नारियल पानी",
     "products.tender.f3": "थोक में उपलब्ध",
     "products.tender.f4": "रोज़ाना ताज़ा सप्लाई",
-    "products.puja.name": "छठ पूजा नारियल",
-    "products.puja.desc":
+    "products.pooja.name": "छठ पूजा नारियल",
+    "products.pooja.desc":
       "छठ पूजा के लिए विशेष रूप से चुने गए साफ और अच्छे गुणवत्ता वाले नारियल उपलब्ध हैं। ये नारियल धार्मिक पूजा और प्रसाद के लिए उपयुक्त होते हैं।",
-    "products.puja.f1": "पूजा के लिए चयनित नारियल",
-    "products.puja.f2": "साफ और अच्छी गुणवत्ता",
-    "products.puja.f3": "बड़ी मात्रा में उपलब्ध",
-    "products.puja.f4": "छठ पूजा के लिए विशेष सप्लाई",
+    "products.pooja.f1": "पूजा के लिए चयनित नारियल",
+    "products.pooja.f2": "साफ और अच्छी गुणवत्ता",
+    "products.pooja.f3": "बड़ी मात्रा में उपलब्ध",
+    "products.pooja.f4": "छठ पूजा के लिए विशेष सप्लाई",
 
     "gallery.water": "ताज़ा नारियल पानी",
     "gallery.wholesale": "थोक नारियल स्टैक",
@@ -62,7 +62,7 @@ const translations = {
     "order.subheading": "WhatsApp या App के माध्यम से तुरंत ऑर्डर बुक करें।",
     "order.form.product": "उत्पाद",
     "order.form.tender": "कच्चा नारियल (Tender Coconut)",
-    "order.form.puja": "छठ पूजा नारियल",
+    "order.form.pooja": "छठ पूजा नारियल",
     "order.form.name": "नाम",
     "order.form.mobile": "मोबाइल नंबर",
     "order.form.quantity": "मात्रा",
@@ -74,7 +74,7 @@ const translations = {
 
     "about.heading": "हमारे बारे में",
     "about.text":
-      "MS Coconut Wholesale एक भरोसेमंद नारियल सप्लायर है जो ताज़ा कच्चा नारियल और पूजा के लिए नारियल उपलब्ध कराता है। हम थोक और रिटेल दोनों में उच्च गुणवत्ता वाले नारियल सप्लाई करते हैं।",
+      "हम 2009 से इस व्यवसाय में हैं और अपने उपभोक्ताओं को विश्वास और आस्था के साथ प्राकृतिक और खेत के ताज़ा नारियल प्रदान कर रहे हैं। हम पूरे बिहार में सबसे कम कीमत की गारंटी देते हैं।",
     "about.caption": "फार्म से सीधे ताज़ा नारियल सप्लाई",
 
     "contact.heading": "संपर्क करें",
@@ -101,9 +101,9 @@ const translations = {
 
     "hero.kicker": "Fresh Supply | Wholesale & Retail",
     "hero.title":
-      "MS Coconut Wholesale<br />Trusted Supplier of Fresh and Puja Coconuts",
+      "MS Coconut Wholesale<br />Trusted Supplier of Fresh and Pooja Coconuts",
     "hero.subtitle":
-      "We provide raw tender coconuts for coconut water and special coconuts for Chhath puja.<br />Wholesale and retail supply available.",
+      "We provide raw tender coconuts for coconut water and special coconuts for Chhath pooja.<br />Wholesale and retail supply available.",
     "hero.whatsappBtn": "WhatsApp Order",
     "hero.appBtn": "Order via App",
 
@@ -118,13 +118,13 @@ const translations = {
     "products.tender.f2": "Natural coconut water",
     "products.tender.f3": "Available in bulk",
     "products.tender.f4": "Daily fresh supply",
-    "products.puja.name": "Chhath Puja Coconut",
-    "products.puja.desc":
-      "Clean and carefully selected coconuts are available especially for Chhath puja. These are suitable for religious rituals and prasad.",
-    "products.puja.f1": "Selected for puja",
-    "products.puja.f2": "Clean and premium quality",
-    "products.puja.f3": "Available in large quantity",
-    "products.puja.f4": "Special Chhath puja supply",
+    "products.pooja.name": "Chhath Pooja Coconut",
+    "products.pooja.desc":
+      "Clean and carefully selected coconuts are available especially for Chhath pooja. These are suitable for religious rituals and prasad.",
+    "products.pooja.f1": "Selected for pooja",
+    "products.pooja.f2": "Clean and premium quality",
+    "products.pooja.f3": "Available in large quantity",
+    "products.pooja.f4": "Special Chhath pooja supply",
 
     "gallery.water": "Fresh Coconut Water",
     "gallery.wholesale": "Coconut Wholesale Stacks",
@@ -140,7 +140,7 @@ const translations = {
     "order.subheading": "Book instantly via WhatsApp or mobile app.",
     "order.form.product": "Product",
     "order.form.tender": "Tender Coconut",
-    "order.form.puja": "Chhath Puja Coconut",
+    "order.form.pooja": "Chhath Pooja Coconut",
     "order.form.name": "Name",
     "order.form.mobile": "Mobile No",
     "order.form.quantity": "Quantity",
@@ -152,7 +152,7 @@ const translations = {
 
     "about.heading": "About Us",
     "about.text":
-      "MS Coconut Wholesale is a trusted coconut supplier providing fresh tender coconuts and coconuts for puja. We supply high-quality coconuts in both wholesale and retail.",
+      "We are in this business since 2009, providing natural and farm-fresh coconuts to our consumers with trust and faith. We guarantee the lowest cost in all of Bihar.",
     "about.caption": "Fresh coconuts supplied directly from farm",
 
     "contact.heading": "Contact Us",
@@ -186,7 +186,7 @@ const totalAmountInput = document.getElementById("totalAmount");
 const orderForm = document.getElementById("orderForm");
 
 const priceTender = document.getElementById("priceTender");
-const pricePuja = document.getElementById("pricePuja");
+const pricePooja = document.getElementById("pricepooja");
 
 function getLabel(key) {
   return translations[currentLang][key] || translations.hi[key] || key;
