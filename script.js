@@ -2,7 +2,7 @@
 
 const RATES = {
   tender: 45,
-  pooja: 35,
+  pooja: 30,
 };
 
 // Supabase Configuration
